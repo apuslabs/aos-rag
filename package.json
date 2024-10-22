@@ -5,7 +5,10 @@
   "main": "index.js",
   "scripts": {
     "docker_compile_libraries": "",
-    "test": "cd test && node --test --test-timeout=100000000 --expose-gc --experimental-wasm-memory64  --max-old-space-size=32768 *.test.js && cd -"
+    "test": "cd test && node --test --test-timeout=100000000 --expose-gc --experimental-wasm-memory64  --max-old-space-size=32768 *.test.js && cd -",
+    "test:vec": "cd test && node --test --test-timeout=100000000 --expose-gc --experimental-wasm-memory64  --max-old-space-size=32768 sqlite-vec.test.js && cd -",
+    "test:llama": "cd test && node --test --test-timeout=100000000 --expose-gc --experimental-wasm-memory64  --max-old-space-size=32768 aos-llama.test.js && cd -",
+    "test:lembed": "cd test && node --test --test-timeout=100000000 --expose-gc --experimental-wasm-memory64  --max-old-space-size=32768 sqlite-lembed.test.js && cd -"
   },
   "author": "",
   "license": "ISC",
