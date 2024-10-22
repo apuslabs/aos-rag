@@ -103,7 +103,7 @@ return output`), getEnv())
     assert.ok(result.response.Output.data.output == "HELLO WORLD")
   })
 
-  it.skip('Read data from Arweave', async () => {
+  it('Read data from Arweave', async () => {
     const result = await handle(getEval(`
 local file = io.open("/data/dx3GrOQPV5Mwc1c-4HTsyq0s1TNugMf7XfIKJkyVQt8", "r")
 if file then
