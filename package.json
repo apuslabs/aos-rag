@@ -1,0 +1,15 @@
+{
+  "name": "aos-rag",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "docker_compile_libraries": "",
+    "test": "cd test && node --test --test-timeout=100000000 --expose-gc --experimental-wasm-memory64  --max-old-space-size=32768 *.test.js && cd -"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@permaweb/ao-loader": "^0.0.39"
+  }
+}
