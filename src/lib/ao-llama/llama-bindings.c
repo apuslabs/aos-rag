@@ -70,27 +70,27 @@ int luaopen_llama(lua_State *L) {
 
 // Handle callbacks in Lua
 void l_llama_on_log(enum ggml_log_level level, const char * str, void* userdata) {
-  lua_State *L = wasm_lua_state;
+  // lua_State *L = wasm_lua_state;
 
-  lua_getglobal(L, "Llama");
-  lua_getfield(L, -1, "onLog");
-  lua_remove(L, -2); // Remove the llama table from the stack
+  // lua_getglobal(L, "Llama");
+  // lua_getfield(L, -1, "onLog");
+  // lua_remove(L, -2); // Remove the llama table from the stack
 
-  lua_pushinteger(L, level);
-  lua_pushstring(L, str);
-  lua_call(L, 2, 0);
+  // lua_pushinteger(L, level);
+  // lua_pushstring(L, str);
+  // lua_call(L, 2, 0);
 
-  fflush(stderr);
+  // fflush(stderr);
 }
 
 bool l_llama_on_progress(float progress, void * user_data) {
-  lua_State *L = wasm_lua_state;
+  // lua_State *L = wasm_lua_state;
 
-  lua_getglobal(L, "Llama");
-  lua_getfield(L, -1, "onProgress");
-  lua_remove(L, -2); // Remove the llama table from the stack
+  // lua_getglobal(L, "Llama");
+  // lua_getfield(L, -1, "onProgress");
+  // lua_remove(L, -2); // Remove the llama table from the stack
 
-  lua_pushnumber(L, progress);
-  lua_call(L, 1, 0);
+  // lua_pushnumber(L, progress);
+  // lua_call(L, 1, 0);
   return true;
 }

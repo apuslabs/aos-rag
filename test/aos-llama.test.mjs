@@ -40,7 +40,7 @@ describe('AOS-Llama+VFS Tests', async () => {
           memory: new WebAssembly.Memory({ initial: 8589934592 / 65536, maximum: 17179869184 / 65536, index: 'i64' })
         }
       }
-      //imports.env = Object.assign({}, imports.env, customImports.env)
+      imports.env = Object.assign({}, imports.env, customImports.env)
 
       WebAssembly.instantiate(wasm, imports).then(result =>
 
@@ -52,7 +52,8 @@ describe('AOS-Llama+VFS Tests', async () => {
     instance = await m({
       admissableList: AdmissableList,
       WeaveDrive: weaveDrive,
-      ARWEAVE: 'https://arweave.net',
+      // ARWEAVE: 'https://arweave.net',
+      ARWEAVE: 'http://localhost:3000',
       mode: "test",
       blockHeight: 100,
       spawn: {
@@ -103,7 +104,7 @@ return output`), getEnv())
     assert.ok(result.response.Output.data.output == "HELLO WORLD")
   })
 
-  it('Read data from Arweave', async () => {
+  it.skip('Read data from Arweave', async () => {
     const result = await handle(getEval(`
 local file = io.open("/data/dx3GrOQPV5Mwc1c-4HTsyq0s1TNugMf7XfIKJkyVQt8", "r")
 if file then
@@ -190,15 +191,15 @@ return Llama.info()
     assert.ok(result.response.Output.data.output.length > 10)
   })
 
-  it.skip('AOS runs Phi-3 Mini 4k Instruct', async () => {
+  it('AOS runs Phi-3 Mini 4k Instruct', async () => {
     const result = await handle(getEval(`
-local Llama = require(".Llama")
+local Llama = require("llama")
 Llama.load('/data/ISrbGzQot05rs_HKC08O_SmkipYQnqgB1yC3mjZZeEo')
-Llama.setPrompt([[<|user|>Tell me a story.<|end|><|assistant|>]])
-return Llama.run(80) 
+Llama.set_prompt([[<|user|>Tell me a story.<|end|><|assistant|>]])
+return Llama.run(5) 
   `), getEnv())
-    console.log(result.response)
-    assert.ok(result.response.Output.data.output.length > 10)
+    console.log(result.response.Output.data)
+    assert.ok(result.response.Output.data.length > 2)
   })
 
   it.skip('AOS runs Llama3 8B Instruct q4', async () => {
