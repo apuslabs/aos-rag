@@ -2,3 +2,7 @@
 .vscode/
 node_modules/
 vendor/**
+models/*
+!models/mock-arweave.js
+test/process.js
+test/process.wasm

@@ -12,7 +12,7 @@ LIB_SQLITE_LEMBED_DIR=src/lib/sql-lembed
 LIB_AO_LLAMA_DIR=src/lib/ao-llama
 
 EMXX_CFLAGS=-s MEMORY64=1
-SRC_PROCESS_DIR=src/process/
+SRC_PROCESS_DIR=src/process
 
 VENDOR_DIR=vendor/
 VENDOR_SQLITE_DIR=vendor/sqlite
