@@ -1,16 +1,22 @@
 {
   "name": "aos-rag",
   "version": "1.0.0",
+  "engines": {
+    "node": ">=v22.0.0"
+  },
   "description": "",
   "main": "index.js",
   "scripts": {
     "docker_compile_libraries": "",
     "test": "cd test && node --test --test-timeout=100000000 --expose-gc --experimental-wasm-memory64  --max-old-space-size=32768 *.test.js && cd -",
-    "test_ao_llama": "cd test && node --test --test-timeout=100000000 --expose-gc --experimental-wasm-memory64  --max-old-space-size=32768 afs.test.js && cd -"
+    "test:vec": "cd test && node --test --test-timeout=100000000 --expose-gc --experimental-wasm-memory64  --max-old-space-size=32768 sqlite-vec.test.mjs && cd -",
+    "test:llama": "cd test && node --test --test-timeout=100000000 --expose-gc --experimental-wasm-memory64  --max-old-space-size=32768 aos-llama.test.mjs && cd -",
+    "test:lembed": "cd test && node --test --test-timeout=100000000 --expose-gc --experimental-wasm-memory64  --max-old-space-size=32768 sqlite-lembed.test.mjs && cd -"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@permaweb/ao-loader": "^0.0.39"
+    "@permaweb/ao-loader": "^0.0.39",
+    "@permaweb/weavedrive": "^0.0.12"
   }
 }
