@@ -9,6 +9,7 @@ AO_IMAGE="p3rmaw3b/ao:0.1.2"
 LIB_SQLITE_VEC_DIR=src/lib/sqlite-vec
 LIB_SQLITE3_DIR=src/lib/lsqlite
 LIB_SQLITE_LEMBED_DIR=src/lib/sql-lembed
+LIB_AO_LLAMA_DIR=src/lib/ao-llama
 
 EMXX_CFLAGS=-s MEMORY64=1
 SRC_PROCESS_DIR=src/process/
@@ -35,6 +36,7 @@ LSQLITE3_DEPENDENCY=${LIB_SQLITE3_DIR}/lsqlite3.c ${LIB_SQLITE_LEMBED_DIR}/sqlit
 LSQLITE3_EMCC_OPTION=$(CFLAGS) -o lsqlite3.o -c ${LIB_SQLITE3_DIR}/lsqlite3.c ${LUA_LIB} ${LUA_INC} -I${VENDOR_SQLITE_DIR} \
                      -I${LIB_SQLITE_VEC_DIR} -I${LIB_SQLITE_LEMBED_DIR} -I${VENDOR_LLAMA_DIR} -DSQLITE_CORE
 
+
 SQLITE3_EMCC_OPTION=$(CFLAGS) -o sqlite3.o -c ${VENDOR_SQLITE_DIR}/sqlite3.c 
 
 SQLITE_DEPENDENCY=${VENDOR_SQLITE_DIR}
@@ -42,19 +44,19 @@ SQLITE_EMCC_OPTION=
 
 all: ${BUILD_DIR}/process.js ${BUILD_DIR}/process.wasm
 
-${BUILD_DIR}/process.js ${BUILD_DIR}/process.wasm: ${VENDOR_AOS_DIR} ${BUILD_DIR}/libsqlite.so ${BUILD_DIR} ${VENDOR_AOS_DIR} ${BUILD_DIR}/libllama.a ${BUILD_DIR}/libllamacommon.a
-	mkdir -p ${VENDOR_AOS_DIR}/process/libs/libsqlite
-	chmod -R 777 ${VENDOR_AOS_DIR}/process/libs/libsqlite
-	cp ${BUILD_DIR}/libsqlite.so ${VENDOR_AOS_DIR}/process/libs/libsqlite/
-	cp ${BUILD_DIR}/libllama* ${VENDOR_AOS_DIR}/process/libs/
+${BUILD_DIR}/process.js ${BUILD_DIR}/process.wasm: ${VENDOR_AOS_DIR} ${BUILD_DIR}/sqlite/libsqlite.so ${BUILD_DIR} ${VENDOR_AOS_DIR} ${BUILD_DIR}/llama/libllama.a ${BUILD_DIR}/llama/common/libcommon.a ${BUILD_DIR}/ao-llama/libaostream.so ${BUILD_DIR}/ao-llama/libaollama.so
+	rm -rf ${VENDOR_AOS_DIR}/process/libs && mkdir -p ${VENDOR_AOS_DIR}/process/libs
 	cp ${SRC_PROCESS_DIR}/config.yml ${VENDOR_AOS_DIR}/process/
+	cp -r ${BUILD_DIR}/* ${VENDOR_AOS_DIR}/process/libs/
 	${DOCKER} -e DEBUG=1 --platform linux/amd64 -v ./${VENDOR_AOS_DIR}/process:/src ${AO_IMAGE} ao-build-module
 	rm -rf test/process.js && mv ${VENDOR_AOS_DIR}/process/process.js test/
 	rm -rf test/process.wasm && mv ${VENDOR_AOS_DIR}/process/process.wasm test/
 
-${BUILD_DIR}/libsqlite.so: ${BUILD_DIR}/lsqlite3.o ${BUILD_DIR}/sqlite-vec.o ${BUILD_DIR}/sqlite-lembed.o ${BUILD_DIR}/sqlite3.o
+${BUILD_DIR}/sqlite/libsqlite.so: ${BUILD_DIR}/lsqlite3.o ${BUILD_DIR}/sqlite-vec.o ${BUILD_DIR}/sqlite-lembed.o ${BUILD_DIR}/sqlite3.o
+	mkdir -p ${BUILD_DIR}/sqlite
 	${DOCKER} -v ./.build:/worker ${AO_IMAGE} sh -c \
-    "cd /worker && emar rcs libsqlite.so sqlite-vec.o sqlite-lembed.o lsqlite3.o sqlite3.o $(LUA_LIB)"
+    "cd /worker && emar rcs sqlite/libsqlite.so sqlite-vec.o sqlite-lembed.o lsqlite3.o sqlite3.o $(LUA_LIB)"
+	rm -rf ${BUILD_DIR}/lsqlite3.o ${BUILD_DIR}/sqlite-vec.o ${BUILD_DIR}/sqlite-lembed.o ${BUILD_DIR}/sqlite3.o
 
 ${BUILD_DIR}/testsqlite.o:
 	${DOCKER} -v ./.build:/worker ${AO_IMAGE} sh -c \
@@ -80,13 +82,62 @@ ${BUILD_DIR}/sqlite3.o: ${VENDOR_SQLITE_DIR} ${BUILD_DIR}
     "cd /worker && emcc ${SQLITE3_EMCC_OPTION}"
 	sudo rm -rf .build/sqlite3.o && sudo mv sqlite3.o .build/sqlite3.o
 
-${BUILD_DIR}/libllama.a ${BUILD_DIR}/libllamacommon.a: ${VENDOR_LLAMA_DIR}
+${BUILD_DIR}/llama/libllama.a ${BUILD_DIR}/llama/common/libcommon.a: ${VENDOR_LLAMA_DIR}
+	mkdir -p ${BUILD_DIR}/llama/common
 	${DOCKER} -v ./${VENDOR_LLAMA_DIR}:/llamacpp ${AO_IMAGE} sh -c \
 			"cd /llamacpp && emcmake cmake -DCMAKE_CXX_FLAGS='${EMXX_CFLAGS}' -S . -B . -DLLAMA_BUILD_EXAMPLES=OFF"
 	${DOCKER} -v ./${VENDOR_LLAMA_DIR}:/llamacpp ${AO_IMAGE} sh -c \
 			"cd /llamacpp && emmake make llama common EMCC_CFLAGS='${EMXX_CFLAGS}'"
-	sudo rm -rf .build/libcommon.a && sudo mv ${VENDOR_LLAMA_DIR}/common/libcommon.a .build/libllamacommon.a
-	sudo rm -rf .build/libllama.a && sudo mv ${VENDOR_LLAMA_DIR}/libllama.a .build/libllama.a
+	sudo rm -rf .build/libcommon.a && sudo mv ${VENDOR_LLAMA_DIR}/common/libcommon.a .build/llama/common/libcommon.a
+	sudo rm -rf .build/libllama.a && sudo mv ${VENDOR_LLAMA_DIR}/libllama.a .build/llama/libllama.a
+
+${BUILD_DIR}/ao-llama/libaostream.so: ${BUILD_DIR}/stream-bindings.o ${BUILD_DIR}/stream.o
+	mkdir -p ${BUILD_DIR}/ao-llama
+	${DOCKER} -v ./.build:/worker ${AO_IMAGE} sh -c \
+    "cd /worker && emar rcs ao-llama/libaostream.so stream-bindings.o stream.o"
+	rm -rf ${BUILD_DIR}/stream-bindings.o ${BUILD_DIR}/stream.o
+
+${BUILD_DIR}/stream.o: ${LIB_AO_LLAMA_DIR}/stream.c
+	${DOCKER} -v .:/worker ${AO_IMAGE} sh -c \
+    "cd /worker && emcc -o ${BUILD_DIR}/stream.o -c ${LIB_AO_LLAMA_DIR}/stream.c -sMEMORY64=1 ${LUA_LIB} ${LUA_INC}"
+
+${BUILD_DIR}/stream-bindings.o: ${LIB_AO_LLAMA_DIR}/stream-bindings.c
+	${DOCKER} -v .:/worker ${AO_IMAGE} sh -c \
+    "cd /worker && emcc -o ${BUILD_DIR}/stream-bindings.o -c ${LIB_AO_LLAMA_DIR}/stream-bindings.c -sMEMORY64=1 -Wno-experimental ${LUA_LIB} ${LUA_INC}"
+
+
+${BUILD_DIR}/ao-llama/libaollama.so: ${BUILD_DIR}/llama-bindings.o ${BUILD_DIR}/llama-run.o
+	mkdir -p ${BUILD_DIR}/ao-llama
+	${DOCKER} -v ./.build:/worker ${AO_IMAGE} sh -c \
+    "cd /worker && emar rcs ao-llama/libaollama.so llama-bindings.o llama-run.o"
+	rm -rf ${BUILD_DIR}/llama-bindings.o ${BUILD_DIR}/llama-run.o
+
+${BUILD_DIR}/llama-bindings.o: ${LIB_AO_LLAMA_DIR}/llama-bindings.c
+	${DOCKER} -v .:/worker ${AO_IMAGE} sh -c \
+    "cd /worker && emcc -o ${BUILD_DIR}/llama-bindings.o -c ${LIB_AO_LLAMA_DIR}/llama-bindings.c -sMEMORY64=1 -I${VENDOR_LLAMA_DIR} ${LUA_LIB} ${LUA_INC}"
+
+${BUILD_DIR}/llama-run.o: ${LIB_AO_LLAMA_DIR}/llama-run.cpp
+	${DOCKER} -v .:/worker ${AO_IMAGE} sh -c \
+    "cd /worker && emcc -o ${BUILD_DIR}/llama-run.o -c ${LIB_AO_LLAMA_DIR}/llama-run.cpp -sMEMORY64=1 -Wno-experimental -I${VENDOR_LLAMA_DIR} -I${VENDOR_LLAMA_DIR}/common ${LUA_LIB} ${LUA_INC}"
+
+
+# libaollama.so: llama-bindings.o llama-run.o
+# 	$(AR) rcs libaollama.so llama-bindings.o llama-run.o
+# 	rm llama-bindings.o llama-run.o
+
+# llama-bindings.o: llama-bindings.c
+# 	$(CC) $(CFLAGS) -c llama-bindings.c -o llama-bindings.o $(LUA_LIB) $(LUA_INC) $(LLAMA_INC)
+
+# llama-run.o: llama-run.cpp
+# 	$(CC) $(CFLAGS) -c llama-run.cpp -o llama-run.o $(LLAMA_INC)
+
+
+
+# llama-bindings.o: llama-bindings.c
+# 	$(CC) $(CFLAGS) -c llama-bindings.c -o llama-bindings.o $(LUA_LIB) $(LUA_INC) $(LLAMA_INC)
+
+# llama-run.o: llama-run.cpp
+# 	$(CC) $(CFLAGS) -c llama-run.cpp -o llama-run.o $(LLAMA_INC)
 
 ${VENDOR_SQLITE_DIR}: ${VENDOR_DIR}
 	mkdir -p vendor/sqlite
@@ -113,3 +164,7 @@ $(VENDOR_DIR):
 clean:
 	rm -rf .build
 	rm -rf ${VENDOR_AOS_DIR}/process/libs/*
+
+# libaostream.so: stream-bindings.o stream.o
+# 	$(AR) rcs libaostream.so stream-bindings.o stream.o
+# 	rm stream.o stream-bindings.o

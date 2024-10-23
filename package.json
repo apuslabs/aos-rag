@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "docker_compile_libraries": "",
-    "test": "cd test && node --test --test-timeout=100000000 --expose-gc --experimental-wasm-memory64  --max-old-space-size=32768 *.test.js && cd -"
+    "test": "cd test && node --test --test-timeout=100000000 --expose-gc --experimental-wasm-memory64  --max-old-space-size=32768 *.test.js && cd -",
+    "test_ao_llama": "cd test && node --test --test-timeout=100000000 --expose-gc --experimental-wasm-memory64  --max-old-space-size=32768 afs.test.js && cd -"
   },
   "author": "",
   "license": "ISC",
