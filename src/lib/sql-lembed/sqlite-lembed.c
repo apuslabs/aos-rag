@@ -492,6 +492,10 @@ static int lembed_modelsUpdate(sqlite3_vtab *pVTab, int argc,
         cparams.rope_freq_scale = contextOptions->rope_freq_scale;
       }
     }
+    cparams.seed = 1234;
+    cparams.n_ctx = 2048;
+    cparams.n_threads = 1;
+    cparams.n_threads_batch = 1;
 
     ctx = llama_new_context_with_model(model, cparams);
     if (!ctx) {

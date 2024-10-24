@@ -14,64 +14,64 @@ module.exports = function weaveDrive(mod, FS) {
     },
 
     async create(id) {
-      var properties = { isDevice: false, contents: null }
-
-      if (!await this.checkAdmissible(id)) {
-        console.log("WeaveDrive: Arweave ID is not admissable! ", id)
-        return 0;
-      }
-
-      // Create the file in the emscripten FS
-      // TODO: might make sense to create the `data` folder here if does not exist
-      var node = FS.createFile('/', 'data/' + id, properties, true, false);
-      // Set initial parameters
-      var bytesLength = await fetch(`${mod.ARWEAVE}/${id}`, { method: 'HEAD' }).then(res => res.headers.get('Content-Length'))
-      node.total_size = Number(bytesLength)
-      node.cache = new Uint8Array(0)
-      node.position = 0;
-
-      // Add a function that defers querying the file size until it is asked the first time.
-      Object.defineProperties(node, { usedBytes: { get: function () { return bytesLength; } } });
-
-      // Now we have created the file in the emscripten FS, we can open it as a stream
-      var stream = FS.open('/data/' + id, "r")
-
-      //console.log("JS: Created file: ", id, " fd: ", stream.fd);
-      return stream;
+        var properties = { isDevice: false, contents: null }
+  
+        if (!await this.checkAdmissible(id)) {
+          console.log("WeaveDrive: Arweave ID is not admissable! ", id)
+          return 0;
+        }
+  
+        // Create the file in the emscripten FS
+        // TODO: might make sense to create the `data` folder here if does not exist
+        var node = FS.createFile('/', 'data/' + id, properties, true, false);
+        // Set initial parameters
+        var bytesLength = await fetch(`${mod.ARWEAVE}/${id}`, { method: 'HEAD' }).then(res => res.headers.get('Content-Length'))
+        node.total_size = Number(bytesLength)
+        node.cache = new Uint8Array(0)
+        node.position = 0;
+  
+        // Add a function that defers querying the file size until it is asked the first time.
+        Object.defineProperties(node, { usedBytes: { get: function () { return bytesLength; } } });
+  
+        // Now we have created the file in the emscripten FS, we can open it as a stream
+        var stream = FS.open('/data/' + id, "r")
+  
+        //console.log("JS: Created file: ", id, " fd: ", stream.fd);
+        return stream;
     },
 
     async open(filename) {
-      console.log(filename)
-      const pathCategory = filename.split('/')[1];
-      const id = filename.split('/')[2];
-      console.log("JS: Opening ID: ", id);
-
-      if (pathCategory === 'data') {
-        if (FS.analyzePath(filename).exists) {
-          for (var i = 0; i < FS.streams.length; i++) {
-            if (FS.streams[i].node.name === id) {
-              //console.log("JS: Found file: ", filename, " fd: ", FS.streams[i].fd);
-              return FS.streams[i].fd;
+      // console.log(filename)
+        const pathCategory = filename.split('/')[1];
+        const id = filename.split('/')[2];
+        // console.log("JS: Opening ID: ", id);
+  
+        if (pathCategory === 'data') {
+          if (FS.analyzePath(filename).exists) {
+            for (var i = 0; i < FS.streams.length; i++) {
+              if (FS.streams[i].node.name === id) {
+                //console.log("JS: Found file: ", filename, " fd: ", FS.streams[i].fd);
+                return FS.streams[i].fd;
+              }
             }
+            console.log("JS: File not found: ", filename);
+            return 0;
           }
-          console.log("JS: File not found: ", filename);
+          else {
+            //console.log("JS: Open => Creating file: ", id);
+            const stream = await this.create(id);
+            //console.log("JS: Open => Created file: ", id, " fd: ", stream.fd);
+            return stream.fd;
+          }
+        }
+        else if (pathCategory === 'headers') {
+          // console.log("Header access not implemented yet.");
           return 0;
         }
         else {
-          //console.log("JS: Open => Creating file: ", id);
-          const stream = await this.create(id);
-          //console.log("JS: Open => Created file: ", id, " fd: ", stream.fd);
-          return stream.fd;
+          // console.warn("JS: Invalid path category: ", pathCategory);
+          return 0;
         }
-      }
-      else if (pathCategory === 'headers') {
-        console.log("Header access not implemented yet.");
-        return 0;
-      }
-      else {
-        console.log("JS: Invalid path category: ", pathCategory);
-        return 0;
-      }
     },
 
     async read(fd, raw_dst_ptr, raw_length) {

@@ -18,6 +18,57 @@ const AdmissableList =
     "jbx-H6aq7b3BbNCHlK50Jz9L-6pz9qmldrYXMwjqQVI"  // Llama3 8B Instruct q8
   ]
 
+
+const InsertModelSQL = `
+  INSERT INTO temp.lembed_models(name, model) select 'all-MiniLM-L6-v2', lembed_model_from_file('/data/st');
+  select lembed(
+    'all-MiniLM-L6-v2',
+    'The United States Postal Service is an independent agency...'
+  );
+  `
+  
+const CreateAritclesSQL = `
+  create table articles(
+    headline text
+  );
+  
+  -- Random NPR headlines from 2024-06-04
+  insert into articles VALUES
+    ('Shohei Ohtani''s ex-interpreter pleads guilty to charges related to gambling and theft'),
+    ('The jury has been selected in Hunter Biden''s gun trial'),
+    ('Larry Allen, a Super Bowl champion and famed Dallas Cowboy, has died at age 52'),
+    ('After saying Charlotte, a lone stingray, was pregnant, aquarium now says she''s sick'),
+    ('An Epoch Times executive is facing money laundering charge');
+  `
+  
+const EmbeddingSQL = `
+  -- Build a vector table with embeddings of article headlines
+  create virtual table vec_articles using vec0(
+    headline_embeddings float[384]
+  );
+  
+  insert into vec_articles(rowid, headline_embeddings)
+    select rowid, lembed('all-MiniLM-L6-v2', headline)
+    from articles;
+  `
+  
+const RetrieveSQL = `
+  with matches as (
+  select
+      rowid,
+      distance
+  from vec_articles
+  where headline_embeddings match lembed('all-MiniLM-L6-v2', 'firearm courtroom')
+  order by distance
+  limit 3
+  )
+  select
+  headline,
+  distance
+  from matches
+  left join articles on articles.rowid = matches.rowid;
+  `
+
 describe('AOS-Sqlite-vec Tests', async () => {
   var instance;
 
@@ -49,6 +100,7 @@ describe('AOS-Sqlite-vec Tests', async () => {
     instance = await m({
       admissableList: AdmissableList,
       WeaveDrive: weaveDrive,
+      // ARWEAVE: 'https://arweave.net/',
       ARWEAVE: 'http://localhost:3000/',
       mode: "test",
       blockHeight: 100,
@@ -64,6 +116,8 @@ describe('AOS-Sqlite-vec Tests', async () => {
       },
       instantiateWasm
     })
+    await instance['FS_createPath']('/', 'data')
+    await instance['FS_createDataFile']('/', 'data/1', Buffer.from('HELLO WORLD'), true, false, false)
     await new Promise((r) => setTimeout(r, 1000));
     console.log("Instance created.")
     await new Promise((r) => setTimeout(r, 250));
@@ -72,39 +126,30 @@ describe('AOS-Sqlite-vec Tests', async () => {
   })
 
   it('Insert models', async () => {
+    const SelectSQL = `
+local select = [[${RetrieveSQL}]]
+local result = {}
+for row in DBClient:nrows(select) do
+  table.insert(result, row)
+end
+return json.encode(result)
+`
     const result = await handle(getEval(`
-    local sqlite = require("lsqlite3")
-    DBClient = sqlite.open_memory()
-    local database = [[
-  INSERT INTO temp.lembed_models(name, model)
-  select 'all-MiniLM-L6-v2', lembed_model_from_file('/data/all-MiniLM-L6-v2.e4ce9877.q8_0.gguf');
-    ]]
+local sqlite = require("lsqlite3")
+local json = require("json")
+DBClient = sqlite.open_memory()
+local database = [[${InsertModelSQL}${CreateAritclesSQL}${EmbeddingSQL}]]
+local execResult = DBClient:exec(database)
+print(execResult)
+if execResult == 0 then
+${SelectSQL}
+end
     `), getEnv())
     console.log(result)
+    const data = JSON.parse(result.response.Output.data.substring(2))
+    assert(data.length >= 1)
   })
 })
-
-//fprinterr
-
-function getLua(model, len, prompt) {
-  if (!prompt) {
-    prompt = "Tell me a story."
-  }
-  return getEval(`
-  local Llama = require(".Llama")
-  io.stderr:write([[Loading model...\n]])
-  Llama.load('/data/${model}')
-  io.stderr:write([[Loaded! Setting prompt...\n]])
-  Llama.setPrompt([[${prompt}]])
-  local result = ""
-  io.stderr:write([[Running...\n]])
-  for i = 0, ${len.toString()}, 1 do
-    local token = Llama.next()
-    result = result .. token
-    io.stderr:write([[Got token: ]] .. token .. [[\n\n]])
-  end
-  return result`);
-}
 
 function getEval(expr) {
   return {
