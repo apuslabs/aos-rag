@@ -49,7 +49,7 @@ describe('AOS-Sqlite-vec Tests', async () => {
     instance = await m({
       admissableList: AdmissableList,
       WeaveDrive: weaveDrive,
-      ARWEAVE: 'https://arweave.net/',
+      ARWEAVE: 'http://localhost:3000/',
       mode: "test",
       blockHeight: 100,
       spawn: {
@@ -79,12 +79,12 @@ describe('AOS-Sqlite-vec Tests', async () => {
   INSERT INTO temp.lembed_models(name, model)
   select 'all-MiniLM-L6-v2', lembed_model_from_file('/data/all-MiniLM-L6-v2.e4ce9877.q8_0.gguf');
     ]]
-    print(DBClient:exec(database))
     `), getEnv())
     console.log(result)
   })
 })
 
+//fprinterr
 
 function getLua(model, len, prompt) {
   if (!prompt) {

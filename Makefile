@@ -154,6 +154,8 @@ ${VENDOR_AOS_DIR}: ${VENDOR_DIR}
 
 ${VENDOR_LLAMA_DIR}: ${VENDOR_DIR}
 	cd vendor && git clone https://github.com/ggerganov/llama.cpp.git && cd llama.cpp && git checkout 2b3389677a833cee0880226533a1768b1a9508d2
+	sed -i.bak 's/#define ggml_assert_aligned.*/#define ggml_assert_aligned\(ptr\)/g' ${VENDOR_LLAMA_DIR}/ggml.c
+	sed -i.bak '/.*GGML_ASSERT.*GGML_MEM_ALIGN == 0.*/d' ${VENDOR_LLAMA_DIR}/ggml.c
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
@@ -164,6 +166,7 @@ $(VENDOR_DIR):
 clean:
 	rm -rf .build
 	rm -rf ${VENDOR_AOS_DIR}/process/libs/*
+	rm -rf test/process.js test/process.wasm
 
 # libaostream.so: stream-bindings.o stream.o
 # 	$(AR) rcs libaostream.so stream-bindings.o stream.o
