@@ -47,6 +47,7 @@ all: ${BUILD_DIR}/process.js ${BUILD_DIR}/process.wasm
 ${BUILD_DIR}/process.js ${BUILD_DIR}/process.wasm: ${VENDOR_AOS_DIR} ${BUILD_DIR}/sqlite/libsqlite.so ${BUILD_DIR} ${VENDOR_AOS_DIR} ${BUILD_DIR}/llama/libllama.a ${BUILD_DIR}/llama/common/libcommon.a ${BUILD_DIR}/ao-llama/libaostream.so ${BUILD_DIR}/ao-llama/libaollama.so
 	rm -rf ${VENDOR_AOS_DIR}/process/libs && mkdir -p ${VENDOR_AOS_DIR}/process/libs
 	cp ${SRC_PROCESS_DIR}/config.yml ${VENDOR_AOS_DIR}/process/
+	cp ${SRC_PROCESS_DIR}/config.yml ${VENDOR_AOS_DIR}/
 	cp -r ${BUILD_DIR}/* ${VENDOR_AOS_DIR}/process/libs/
 	${DOCKER} -e DEBUG=1 --platform linux/amd64 -v ./${VENDOR_AOS_DIR}/process:/src ${AO_IMAGE} ao-build-module
 	rm -rf test/process.js && mv ${VENDOR_AOS_DIR}/process/process.js test/
@@ -149,7 +150,7 @@ ${VENDOR_SQLITE_DIR}: ${VENDOR_DIR}
 ${VENDOR_AOS_DIR}: ${VENDOR_DIR}
 	curl -L -o aos.zip https://github.com/permaweb/aos/archive/3b81b69cc07461126c4e461aca53591b40bd3751.zip
 	unzip aos.zip
-	mv aos-3b81b69cc07461126c4e461aca53591b40bd3751 vendor/aos
+	mv aos-3b81b69cc07461126c4e461aca53591b40bd3751 aos && mv aos vendor/
 	rm aos.zip
 
 ${VENDOR_LLAMA_DIR}: ${VENDOR_DIR}
@@ -164,9 +165,10 @@ $(VENDOR_DIR):
 	mkdir -p $(VENDOR_DIR)
 
 clean:
-	rm -rf .build
-	rm -rf ${VENDOR_AOS_DIR}/process/libs/*
-	rm -rf test/process.js test/process.wasm
+	sudo rm -rf .build
+	sudo rm -rf ${VENDOR_AOS_DIR}/process/libs/*
+	sudo rm -rf test/process.js test/process.wasm
+	sudo rm -rf vendor
 
 # libaostream.so: stream-bindings.o stream.o
 # 	$(AR) rcs libaostream.so stream-bindings.o stream.o
