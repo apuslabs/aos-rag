@@ -20,7 +20,7 @@ const AdmissableList =
 
 
 const InsertModelSQL = `
-  INSERT INTO temp.lembed_models(name, model) select 'all-MiniLM-L6-v2', lembed_model_from_file('/data/st');
+  INSERT INTO temp.lembed_models(name, model) select 'all-MiniLM-L6-v2', lembed_model_from_file('/data/M-OzkyjxWhSvWYF87p0kvmkuAEEkvOzIj4nMNoSIydc');
   select lembed(
     'all-MiniLM-L6-v2',
     'The United States Postal Service is an independent agency...'
@@ -44,7 +44,7 @@ const CreateAritclesSQL = `
 const EmbeddingSQL = `
   -- Build a vector table with embeddings of article headlines
   create virtual table vec_articles using vec0(
-    headline_embeddings float[384]
+    headline_embeddings float[1600]
   );
   
   insert into vec_articles(rowid, headline_embeddings)
@@ -83,11 +83,11 @@ describe('AOS-Sqlite-vec Tests', async () => {
     var instantiateWasm = function (imports, cb) {
 
       // merge imports argument
-      const customImports = {
-        env: {
-          memory: new WebAssembly.Memory({ initial: 8589934592 / 65536, maximum: 17179869184 / 65536, index: 'i64' })
-        }
-      }
+      // const customImports = {
+      //   env: {
+      //     memory: new WebAssembly.Memory({ initial: 8589934592 / 65536, maximum: 17179869184 / 65536, index: 'i64' })
+      //   }
+      // }
       //imports.env = Object.assign({}, imports.env, customImports.env)
 
       WebAssembly.instantiate(wasm, imports).then(result =>
@@ -100,8 +100,8 @@ describe('AOS-Sqlite-vec Tests', async () => {
     instance = await m({
       admissableList: AdmissableList,
       WeaveDrive: weaveDrive,
-      // ARWEAVE: 'https://arweave.net/',
-      ARWEAVE: 'http://localhost:3000/',
+      ARWEAVE: 'https://arweave.net',
+      // ARWEAVE: 'http://localhost:3000/',
       mode: "test",
       blockHeight: 100,
       spawn: {

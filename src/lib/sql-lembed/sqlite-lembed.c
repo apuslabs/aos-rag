@@ -469,6 +469,7 @@ static int lembed_modelsUpdate(sqlite3_vtab *pVTab, int argc,
     if (modelOptions && modelOptions->defined[0]) {
       mparams.n_gpu_layers = modelOptions->n_gpu_layers;
     }
+    mparams.use_mmap = true;
 
     model = llama_load_model_from_file(modelPath, mparams);
     if (!model) {

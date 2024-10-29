@@ -35,12 +35,12 @@ describe('AOS-Llama+VFS Tests', async () => {
     var instantiateWasm = function (imports, cb) {
 
       // merge imports argument
-      const customImports = {
-        env: {
-          memory: new WebAssembly.Memory({ initial: 8589934592 / 65536, maximum: 17179869184 / 65536, index: 'i64' })
-        }
-      }
-      imports.env = Object.assign({}, imports.env, customImports.env)
+      // const customImports = {
+      //   env: {
+      //     memory: new WebAssembly.Memory({ initial: 8589934592 / 65536, maximum: 17179869184 / 65536, index: 'i64' })
+      //   }
+      // }
+      // imports.env = Object.assign({}, imports.env, customImports.env)
 
       WebAssembly.instantiate(wasm, imports).then(result =>
 
@@ -52,8 +52,8 @@ describe('AOS-Llama+VFS Tests', async () => {
     instance = await m({
       admissableList: AdmissableList,
       WeaveDrive: weaveDrive,
-      // ARWEAVE: 'https://arweave.net',
-      ARWEAVE: 'http://localhost:3000',
+      ARWEAVE: 'https://arweave.net',
+      // ARWEAVE: 'http://localhost:3000',
       mode: "test",
       blockHeight: 100,
       spawn: {
@@ -196,7 +196,7 @@ return Llama.info()
 local Llama = require("llama")
 Llama.load('/data/ISrbGzQot05rs_HKC08O_SmkipYQnqgB1yC3mjZZeEo')
 Llama.set_prompt([[<|user|>Tell me a story.<|end|><|assistant|>]])
-return Llama.run(5) 
+return Llama.run(30) 
   `), getEnv())
     console.log(result.response.Output.data)
     assert.ok(result.response.Output.data.length > 2)

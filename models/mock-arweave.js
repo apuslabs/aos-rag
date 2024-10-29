@@ -42,9 +42,12 @@ const server = http.createServer((req, res) => {
         'Content-Length': chunkSize,
         'Content-Type': 'application/octet-stream',
       });
-
-      const fileStream = fs.createReadStream(filePath, { start, end });
-      fileStream.pipe(res);
+      if (req.method === 'HEAD') {
+        res.end();
+      } else {
+        const fileStream = fs.createReadStream(filePath, { start, end });
+        fileStream.pipe(res);
+      }
     }
   });
 });

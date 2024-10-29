@@ -41,7 +41,7 @@ SQLITE3_EMCC_OPTION=$(CFLAGS) -o sqlite3.o -c ${VENDOR_SQLITE_DIR}/sqlite3.c
 SQLITE_DEPENDENCY=${VENDOR_SQLITE_DIR}
 SQLITE_EMCC_OPTION=
 
-all: ${BUILD_DIR}/process.js ${BUILD_DIR}/process.wasm
+all: clean ${BUILD_DIR}/process.js ${BUILD_DIR}/process.wasm
 
 ${BUILD_DIR}/process.js ${BUILD_DIR}/process.wasm: ${VENDOR_AOS_DIR} ${BUILD_DIR}/sqlite/libsqlite.so ${BUILD_DIR} ${VENDOR_AOS_DIR} ${BUILD_DIR}/llama/libllama.a ${BUILD_DIR}/llama/common/libcommon.a ${BUILD_DIR}/ao-llama/libaostream.so ${BUILD_DIR}/ao-llama/libaollama.so
 	rm -rf ${VENDOR_AOS_DIR}/process/libs && mkdir -p ${VENDOR_AOS_DIR}/process/libs
