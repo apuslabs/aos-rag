@@ -3,7 +3,9 @@ CC ?= $(EMCC)       # emcc 编译器将通过 emmake 设置
 AR ?= $(EMAR)       # emar 将通过 emmake 设置
 CFLAGS= -sMEMORY64=1 -Wno-experimental -O3
 LUA_INC= -I/lua-5.3.4/src 
-AO_IMAGE="p3rmaw3b/ao:0.1.2"
+AO_IMAGE="p3rmaw3b/ao:0.1.4"
+
+AOS_GITHUB_COMMIT=958aeeb41aa4f6b7dc17f89bfd3be2d7a22a908a
 
 LIB_SQLITE_VEC_DIR=src/lib/sqlite-vec
 LIB_SQLITE3_DIR=src/lib/lsqlite
@@ -21,16 +23,15 @@ BUILD_DIR = .build
 
 DOCKER = docker run --platform linux/amd64
 
-SQLITE_VEC_DEPENDENCY=${LIB_SQLITE_VEC_DIR}/sqlite-vec.c ${VENDOR_SQLITE_DIR} ${BUILD_DIR}
-SQLITE_LEMBED_DEPENDENCY=${LIB_SQLITE_LEMBED_DIR}/sqlite-lembed.c ${VENDOR_SQLITE_DIR} ${BUILD_DIR}
+SQLITE_VEC_DEPENDENCY=${LIB_SQLITE_VEC_DIR}/sqlite-vec.c ${BUILD_DIR}
+SQLITE_LEMBED_DEPENDENCY=${LIB_SQLITE_LEMBED_DIR}/sqlite-lembed.c ${BUILD_DIR}
 
 SQLITE_VEC_EMCC_OPTION=$(CFLAGS) -o sqlite-vec.o -c src/lib/sqlite-vec/sqlite-vec.c -I${VENDOR_SQLITE_DIR} -DSQLITE_CORE
 
 SQLITE_LEMBED_EMCC_OPTION=$(CFLAGS) -o sqlite-lembed.o -c ${LIB_SQLITE_LEMBED_DIR}/sqlite-lembed.c -I${VENDOR_SQLITE_DIR} \
 												 -I${VENDOR_LLAMA_DIR} -DSQLITE_CORE
 
-LSQLITE3_DEPENDENCY=${LIB_SQLITE3_DIR}/lsqlite3.c ${LIB_SQLITE_LEMBED_DIR}/sqlite-lembed.h ${VENDOR_SQLITE_DIR} \
-                    ${LIB_SQLITE_VEC_DIR}/sqlite-vec.h ${VENDOR_LLAMA_DIR}
+LSQLITE3_DEPENDENCY=${LIB_SQLITE3_DIR}/lsqlite3.c ${LIB_SQLITE_LEMBED_DIR}/sqlite-lembed.h ${LIB_SQLITE_VEC_DIR}/sqlite-vec.h
 
 LSQLITE3_EMCC_OPTION=$(CFLAGS) -o lsqlite3.o -c ${LIB_SQLITE3_DIR}/lsqlite3.c ${LUA_INC} -I${VENDOR_SQLITE_DIR} \
                      -I${LIB_SQLITE_VEC_DIR} -I${LIB_SQLITE_LEMBED_DIR} -I${VENDOR_LLAMA_DIR} -DSQLITE_CORE
@@ -41,14 +42,15 @@ SQLITE3_EMCC_OPTION=$(CFLAGS) -o sqlite3.o -c ${VENDOR_SQLITE_DIR}/sqlite3.c
 SQLITE_DEPENDENCY=${VENDOR_SQLITE_DIR}
 SQLITE_EMCC_OPTION=
 
-all: clean ${BUILD_DIR}/process.js ${BUILD_DIR}/process.wasm
+all: ${BUILD_DIR}/process.js ${BUILD_DIR}/process.wasm
 
-${BUILD_DIR}/process.js ${BUILD_DIR}/process.wasm: ${VENDOR_AOS_DIR} ${BUILD_DIR}/sqlite/libsqlite.so ${BUILD_DIR} ${VENDOR_AOS_DIR} ${BUILD_DIR}/llama/libllama.a ${BUILD_DIR}/llama/common/libcommon.a ${BUILD_DIR}/ao-llama/libaostream.so ${BUILD_DIR}/ao-llama/libaollama.so
+${BUILD_DIR}/process.js ${BUILD_DIR}/process.wasm: ${BUILD_DIR}/sqlite/libsqlite.so ${BUILD_DIR} ${BUILD_DIR}/llama/libllama.a ${BUILD_DIR}/llama/common/libcommon.a ${BUILD_DIR}/ao-llama/libaostream.so ${BUILD_DIR}/ao-llama/libaollama.so
 	rm -rf ${VENDOR_AOS_DIR}/process/libs && mkdir -p ${VENDOR_AOS_DIR}/process/libs
 	cp ${SRC_PROCESS_DIR}/config.yml ${VENDOR_AOS_DIR}/process/
 	cp ${SRC_PROCESS_DIR}/config.yml ${VENDOR_AOS_DIR}/
 	cp -r ${BUILD_DIR}/* ${VENDOR_AOS_DIR}/process/libs/
-	cd ${VENDOR_AOS_DIR}/process && ao build && cd -
+#	cd ${VENDOR_AOS_DIR}/process && ao build && cd -
+	${DOCKER} -e DEBUG=1 --platform linux/amd64 -v ./${VENDOR_AOS_DIR}/process:/src ${AO_IMAGE} ao-build-module
 	rm -rf test/process.js && mv ${VENDOR_AOS_DIR}/process/process.js test/
 	rm -rf test/process.wasm && mv ${VENDOR_AOS_DIR}/process/process.wasm test/
 
@@ -58,7 +60,7 @@ ${BUILD_DIR}/sqlite/libsqlite.so: ${BUILD_DIR}/lsqlite3.o ${BUILD_DIR}/sqlite-ve
     "cd /worker && emar rcs sqlite/libsqlite.so sqlite-vec.o sqlite-lembed.o lsqlite3.o sqlite3.o"
 	rm -rf ${BUILD_DIR}/lsqlite3.o ${BUILD_DIR}/sqlite-vec.o ${BUILD_DIR}/sqlite-lembed.o ${BUILD_DIR}/sqlite3.o
 
-${BUILD_DIR}/lsqlite3.o: ${LSQLITE3_DEPENDENCY} ${BUILD_DIR} ${VENDOR_LLAMA_DIR}
+${BUILD_DIR}/lsqlite3.o: ${LSQLITE3_DEPENDENCY} ${BUILD_DIR}
 	${DOCKER} -v .:/worker ${AO_IMAGE} sh -c \
     "cd /worker && emcc ${LSQLITE3_EMCC_OPTION}"
 	mv lsqlite3.o .build/
@@ -73,12 +75,12 @@ ${BUILD_DIR}/sqlite-lembed.o: ${SQLITE_LEMBED_DEPENDENCY} ${BUILD_DIR}
     "cd /worker && emcc ${SQLITE_LEMBED_EMCC_OPTION}"
 	mv sqlite-lembed.o ${BUILD_DIR}/
 
-${BUILD_DIR}/sqlite3.o: ${VENDOR_SQLITE_DIR} ${BUILD_DIR}
+${BUILD_DIR}/sqlite3.o: ${BUILD_DIR}
 	${DOCKER} -v .:/worker ${AO_IMAGE} sh -c \
     "cd /worker && emcc ${SQLITE3_EMCC_OPTION}"
 	rm -rf .build/sqlite3.o && mv sqlite3.o .build/sqlite3.o
 
-${BUILD_DIR}/llama/libllama.a ${BUILD_DIR}/llama/common/libcommon.a: ${VENDOR_LLAMA_DIR}
+${BUILD_DIR}/llama/libllama.a ${BUILD_DIR}/llama/common/libcommon.a:
 	mkdir -p ${BUILD_DIR}/llama/common
 	${DOCKER} -v ./${VENDOR_LLAMA_DIR}:/llamacpp ${AO_IMAGE} sh -c \
 			"cd /llamacpp && emcmake cmake -DCMAKE_CXX_FLAGS='${EMXX_CFLAGS}' -S . -B . -DLLAMA_BUILD_EXAMPLES=OFF"
@@ -116,6 +118,8 @@ ${BUILD_DIR}/llama-run.o: ${LIB_AO_LLAMA_DIR}/llama-run.cpp
 	${DOCKER} -v .:/worker ${AO_IMAGE} sh -c \
     "cd /worker && emcc -o ${BUILD_DIR}/llama-run.o -c ${LIB_AO_LLAMA_DIR}/llama-run.cpp -sMEMORY64=1 -Wno-experimental -I${VENDOR_LLAMA_DIR} -I${VENDOR_LLAMA_DIR}/common ${LUA_INC}"
 
+vendor: ${VENDOR_SQLITE_DIR} ${VENDOR_AOS_DIR} ${VENDOR_LLAMA_DIR}
+
 ${VENDOR_SQLITE_DIR}: ${VENDOR_DIR}
 	mkdir -p vendor/sqlite
 	curl -O "https://www.sqlite.org/2024/sqlite-autoconf-3460100.tar.gz"
@@ -124,9 +128,9 @@ ${VENDOR_SQLITE_DIR}: ${VENDOR_DIR}
 	rm -rf sqlite-autoconf-3460100*
 
 ${VENDOR_AOS_DIR}: ${VENDOR_DIR}
-	curl -L -o aos.zip https://github.com/permaweb/aos/archive/3b81b69cc07461126c4e461aca53591b40bd3751.zip
+	curl -L -o aos.zip https://github.com/permaweb/aos/archive/${AOS_GITHUB_COMMIT}.zip
 	unzip aos.zip
-	mv aos-3b81b69cc07461126c4e461aca53591b40bd3751 aos && mv aos vendor/
+	mv aos-${AOS_GITHUB_COMMIT} aos && mv aos vendor/
 	rm aos.zip
 
 ${VENDOR_LLAMA_DIR}: ${VENDOR_DIR}
@@ -144,7 +148,8 @@ clean:
 	sudo rm -rf .build
 	sudo rm -rf ${VENDOR_AOS_DIR}/process/libs/*
 	sudo rm -rf test/process.js test/process.wasm
-	sudo rm -rf vendor
+	sudo rm -rf ${VENDOR_AOS_DIR}/process/config.yml
+	sudo rm -rf ${VENDOR_AOS_DIR}/config.yml
 
 # libaostream.so: stream-bindings.o stream.o
 # 	$(AR) rcs libaostream.so stream-bindings.o stream.o

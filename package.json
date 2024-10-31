@@ -16,6 +16,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@ardrive/turbo-sdk": "^1.19.2",
     "@permaweb/ao-loader": "^0.0.39",
     "@permaweb/weavedrive": "^0.0.12"
   }

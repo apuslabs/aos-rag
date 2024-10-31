@@ -38,3 +38,19 @@ sqlite-lembed.o 没有连接到 llama
 5. 生成的libllama.a, libllamacommon.a, lsqlite3.o, sqlite-lembed.o, sqlite-vec.o, sqlite3.o, .o文件emar 连接成为libsqlite.so
 6. libllama.a, libllamacommon.a, libsqlite.so放入process/libs下面
 7. 使用镜像调用AO_BUILD_MODULE构建wasm
+
+
+#### 探索
+
+1. llama_token定义
+```
+    typedef int32_t llama_token; // llama.h l62
+```
+
+2. llama_batch_init 初始化长度，当前embed 和 cap
+
+3. static int llama_decode_internal(  //12035
+   
+   查看何时赋值的embed
+
+4. ao-llama 好像本身就不支持embed
