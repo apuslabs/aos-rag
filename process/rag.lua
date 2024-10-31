@@ -4,7 +4,7 @@ DBClient = DBClient or sqlite.open_memory()
 
 local initSQL = [[
 INSERT INTO temp.lembed_models(name, model) 
-    select 'all-MiniLM-L6-v2', lembed_model_from_file('/data/AOo0kJhF23t6GwLKFb5gH9LuW6VUNkRItg9_9qcw0lw');
+    select 'all-MiniLM-L6-v2', lembed_model_from_file('/data/M-OzkyjxWhSvWYF87p0kvmkuAEEkvOzIj4nMNoSIydc');
 select lembed(
     'all-MiniLM-L6-v2',
     'The United States Postal Service is an independent agency...'
@@ -15,7 +15,7 @@ create table articles(
 
 -- Build a vector table with embeddings of article headlines
 create virtual table vec_articles using vec0(
-    headline_embeddings float[384]
+    headline_embeddings float[1600]
 );
 ]]
 
@@ -33,8 +33,8 @@ local function createInsertSQL(articles)
     assert(#articles > 0, "articles must not be empty")
     local insertSQL = ""
     for i, article in ipairs(articles) do
-      if i == 0 then
-        insertSQL = insertSQL .. "insert into articles VALUES ('" .. article .. "');"
+      if i == 1 then
+        insertSQL = insertSQL .. "insert into articles VALUES ('" .. article .. "')"
       else
         insertSQL = insertSQL .. ", ('" .. article .. "')"
       end
@@ -43,9 +43,10 @@ local function createInsertSQL(articles)
     return insertSQL
 end
 
+-- currently only supports one time embedding because of the way the table insert into vec_articles.
 Handlers.add("Embedding", "Embedding", function (msg)
-    local insertSQL = createInsertSQL(msg.Data)
-    insertSQL = initSQL .. [[
+    local insertSQL = createInsertSQL(json.decode(msg.Data))
+    insertSQL = insertSQL .. [[
 insert into vec_articles(rowid, headline_embeddings)
     select rowid, lembed('all-MiniLM-L6-v2', headline) from articles;
 ]]
